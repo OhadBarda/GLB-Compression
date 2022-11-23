@@ -17,26 +17,31 @@ shutil.copyfile(glbfile, tempGlbFile)
 
 subprocess.run('glb-unpack ' + tempGlbFile, shell = True)
 
-print('finish unpack...\n')
+print('Unpack...Done\n')
 
 ext = ('.png', '.jpg')
 
 for file in os.listdir(tempdirectory.name):
     tempImgFile = os.path.join(tempdir, file)
-    print(tempImgFile)
     if file.endswith(ext):
         subprocess.run('magick convert ' + tempImgFile + ' -strip ' + tempImgFile, shell = True)
-        subprocess.run('toktx --t2 ' + tempImgFile + ' ' + tempImgFile)
+        tmpKtxFile = os.path.splitext(tempImgFile)[0] + '.ktx'
+        subprocess.run('toktx --t2 ' + tmpKtxFile + ' ' + tempImgFile)
         
-print('Finish removing ICC profile...\n')
-print('Finish converting to KTX...\n')
+print('Fix ICC & Convert to KTX ...Done\n')
 
 os.remove(tempGlbFile)
+
+print('Delete temp GLB...Done\n')
 
 gltffile = os.path.splitext(tempGlbFile)[0] + '.gltf'
 
 subprocess.run('glb-pack ' + gltffile, shell = True)
 
-print('Finish update GLB...\n')
+print('Pack to GLB...Done\n')
+
+shutil.copyfile(tempGlbFile, glbfile)
+
+print('Update GLB...Done\n')
 
 input('Press any key...')
