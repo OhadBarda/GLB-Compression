@@ -32,6 +32,12 @@ gltffile = os.path.splitext(tempGlbFile)[0] + '.gltf'
 
 subprocess.run('glb-pack ' + gltffile, shell = True)
 
-shutil.copyfile(tempGlbFile, glbfile)
+tempGlbFileDraco = os.path.splitext(tempGlbFile)[0] + '_w_KTX_Draco.glb'
+
+print(tempGlbFileDraco)
+
+subprocess.run('gltf-transform draco ' + tempGlbFile + ' ' + tempGlbFileDraco, shell = True)
+
+shutil.copyfile(tempGlbFileDraco, glbfile)
 
 input('Press any key...')
