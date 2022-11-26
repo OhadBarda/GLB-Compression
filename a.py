@@ -3,27 +3,54 @@ import subprocess
 import tempfile
 import shutil
 import shlex
+import sys
 import os
 
-glbFilePath = input('Please type the path for the GLB file: \n')
+glbFile = input('Please type the path for the GLB file: \n')
 
-glbFilePath = glbFilePath[1:-1]
+glbFile = glbFile[1:-1]
 
-glbFileName = os.path.basename(glbFilePath)
+if glbFile == "":
+    print('Error: Please try again and drag a GLB file after the prompt.')
+    sys.exit()
 
-glbFolderPath = os.path.dirname(glbFilePath)
+yes = ('Y' , 'y')
+no = ('N' , 'n')
+textureLimit = ''
+textureLimitProp = ''
+
+while textureLimit not in (yes+no): 
+    textureLimit = input('\nDo you want to limit texture resolution? (Y/N): ')
+    if textureLimit in yes:
+        while textureLimitProp not in (yes+no): 
+            textureLimitProp = input('Proportional limit? (Y/N): ')
+            if textureLimitProp in yes:
+                textureLimitWidth = input('Width limit (px): ')
+                textureLimitHeight = textureLimitWidth
+            if textureLimitProp in no:
+                textureLimitWidth = input('Width limit (px): ')
+                textureLimitHeight = input('Height limit (px): ')
+
+glbFileName = os.path.basename(glbFile)
+
+glbFolderPath = os.path.dirname(glbFile)
 
 tempFolderPath = tempfile.mkdtemp(dir = glbFolderPath)
 
-tempglbFilePath = os.path.join(tempFolderPath , glbFileName)
+tempglbFile = os.path.join(tempFolderPath , glbFileName)
 
-shutil.copy(glbFilePath , tempFolderPath)
+shutil.copy(glbFile , tempFolderPath)
 
-tempGltfFile = os.path.splitext(tempglbFilePath)[0] + '.gltf'
+tempGltfFile = os.path.splitext(tempglbFile)[0] + '.gltf'
 
 gltfFileName = os.path.basename(tempGltfFile)
 
 os.chdir(tempFolderPath)
+
+# <------- Restore From Here
+
+if textureLimit in yes:
+        subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitWidth + ' --height ' + textureLimitHeight , shell = True)
 
 subprocess.run('gltf-transform copy ' + glbFileName + ' ' + gltfFileName , shell = True)
 
@@ -35,15 +62,14 @@ for file in os.listdir(tempFolderPath):
         subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
         print('Done')
 
-subprocess.run('gltf-transform etc1s ' + gltfFileName + ' ' + glbFileName , shell = True)
+subprocess.run('gltf-transform etc1s ' + ' ' + gltfFileName + ' ' + glbFileName , shell = True)
 
 subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
 
-glbFileSize = round(os.path.getsize(glbFileName) / 1024 , 2)
+# -------------> To here
 
-print('Compressed file size:' , glbFileSize , 'KB')
-
-compGlbFileName = Path(glbFilePath).stem + '_ktx_draco.glb'
+firstName = '_ktx_draco_1'
+compGlbFileName = Path(glbFile).stem + firstName + '.glb'
 
 compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
 
@@ -51,4 +77,6 @@ shutil.copy(glbFileName , compGlbFile)
 
 os.chdir("..")
 
+# <------- Restore From Here
 shutil.rmtree(tempFolderPath)
+# -------------> To here
