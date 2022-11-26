@@ -49,26 +49,32 @@ os.chdir(tempFolderPath)
 
 # <------- Restore From Here
 
-if textureLimit in yes:
-        subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitWidth + ' --height ' + textureLimitHeight , shell = True)
+# if textureLimit in yes:
+        # subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitWidth + ' --height ' + textureLimitHeight , shell = True)
 
-subprocess.run('gltf-transform copy ' + glbFileName + ' ' + gltfFileName , shell = True)
+# subprocess.run('gltf-transform copy ' + glbFileName + ' ' + gltfFileName , shell = True)
 
-ext = ('.png', '.jpg')
+# ext = ('.png', '.jpg')
 
-for file in os.listdir(tempFolderPath):
-    if file.endswith(ext):
-        print(file + ' ...' , end =" ")
-        subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
-        print('Done')
+# for file in os.listdir(tempFolderPath):
+    # if file.endswith(ext):
+        # print(file + ' ...' , end =" ")
+        # subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
+        # print('Done')
 
-subprocess.run('gltf-transform etc1s ' + ' ' + gltfFileName + ' ' + glbFileName , shell = True)
+# subprocess.run('gltf-transform etc1s ' + ' ' + gltfFileName + ' ' + glbFileName , shell = True)
 
-subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
+# subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
 
 # -------------> To here
 
-firstName = '_ktx_draco_1'
+if textureLimit in yes:
+    txtLimitInfo = '_TextureLimit' + '_w' + textureLimitWidth + '_h' + textureLimitHeight
+else:
+    txtLimitInfo = ''
+    
+firstName = txtLimitInfo + '_ktx_draco_1'
+
 compGlbFileName = Path(glbFile).stem + firstName + '.glb'
 
 compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
