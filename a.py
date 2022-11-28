@@ -2,34 +2,56 @@ from pathlib import Path
 import subprocess
 import tempfile
 import shutil
+import msvcrt
 import shlex
-import sys
 import os
 
-glbFile = input('Please type the path for the GLB file: \n')
+glbFile = input('\nDrag the GLB file here and press enter: \n')
 
 glbFile = glbFile[1:-1]
 
-if glbFile == "":
-    print('Error: Please try again and drag a GLB file after the prompt.')
-    sys.exit()
-
 yes = ('Y' , 'y')
 no = ('N' , 'n')
-textureLimit = ''
-textureLimitProp = ''
+textureLimitInput = ''
+textureLimitInputProp = ''
+textureLimitInputWidth = ''
+textureLimitInputHeight = ''
 
-while textureLimit not in (yes+no): 
-    textureLimit = input('\nDo you want to limit texture resolution? (Y/N): ')
-    if textureLimit in yes:
-        while textureLimitProp not in (yes+no): 
-            textureLimitProp = input('Proportional limit? (Y/N): ')
-            if textureLimitProp in yes:
-                textureLimitWidth = input('Width limit (px): ')
-                textureLimitHeight = textureLimitWidth
-            if textureLimitProp in no:
-                textureLimitWidth = input('Width limit (px): ')
-                textureLimitHeight = input('Height limit (px): ')
+while textureLimitInput not in (yes+no):
+    textureLimitInput = input('\nDo you want to limit texture resolution? (Y/N): ')
+    if textureLimitInput in yes:
+        while textureLimitInputProp not in (yes+no): 
+            textureLimitInputProp = input('Proportional limit? (Y/N): ')
+            if textureLimitInputProp in yes:
+                while str.isdigit(textureLimitInputWidth) != True:
+                    textureLimitInputWidth = input('Width limit (px): ')
+                textureLimitInputHeight = textureLimitInputWidth
+            if textureLimitInputProp in no:
+                while str.isdigit(textureLimitInputWidth) != True:
+                    textureLimitInputWidth = input('Width limit (px): ')
+                while str.isdigit(textureLimitInputHeight) != True:
+                    textureLimitInputHeight = input('Height limit (px): ')
+
+uastc = '1'
+etc1s = '2'
+ktxCompType = ''
+ktxCompInput = ''
+while ktxCompInput not in (yes+no):
+    ktxCompInput = input('\nDo you want compressed textures (KTX) ? (Y/N): ')
+    if ktxCompInput in yes:
+        while ktxCompType not in (uastc , etc1s):
+            ktxCompType = input('\nTexture compression type ? \n1 = Low\n2 = High\n')
+        if ktxCompType == '1':
+            ktxCompType = 'uastc'
+        if ktxCompType == '2':
+            ktxCompType = 'etc1s'
+
+geoCompInput = ''
+geoCompState = ''
+while geoCompInput not in (yes+no): 
+    geoCompInput = input('\nDo you want compressd geomety (Draco) ? (Y/N): ')
+    if geoCompInput in yes:
+        geoCompState = '_Draco'
 
 glbFileName = os.path.basename(glbFile)
 
@@ -37,52 +59,54 @@ glbFolderPath = os.path.dirname(glbFile)
 
 tempFolderPath = tempfile.mkdtemp(dir = glbFolderPath)
 
-tempglbFile = os.path.join(tempFolderPath , glbFileName)
+tempGlbFile = os.path.join(tempFolderPath , glbFileName)
 
 shutil.copy(glbFile , tempFolderPath)
 
-tempGltfFile = os.path.splitext(tempglbFile)[0] + '.gltf'
+tempGltfFile = os.path.splitext(tempGlbFile)[0] + '.gltf'
 
-gltfFileName = os.path.basename(tempGltfFile)
+tempGltfFileName = os.path.basename(tempGltfFile)
 
 os.chdir(tempFolderPath)
 
 # <------- Restore From Here
 
-# if textureLimit in yes:
-        # subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitWidth + ' --height ' + textureLimitHeight , shell = True)
+if textureLimitInput in yes:
+        subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitInputWidth + ' --height ' + textureLimitInputHeight , shell = True)
 
-# subprocess.run('gltf-transform copy ' + glbFileName + ' ' + gltfFileName , shell = True)
 
-# ext = ('.png', '.jpg')
+if ktxCompInput in yes:
+    subprocess.run('gltf-transform copy ' + glbFileName + ' ' + tempGltfFileName , shell = True)
 
-# for file in os.listdir(tempFolderPath):
-    # if file.endswith(ext):
-        # print(file + ' ...' , end =" ")
-        # subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
-        # print('Done')
+    ext = ('.png', '.jpg')
 
-# subprocess.run('gltf-transform etc1s ' + ' ' + gltfFileName + ' ' + glbFileName , shell = True)
-
-# subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
+    for file in os.listdir(tempFolderPath):
+        if file.endswith(ext):
+            print(file + ' ...' , end =" ")
+            subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
+            print('Done')
+    subprocess.run('gltf-transform ' + ktxCompType + ' ' + tempGltfFileName + ' ' + glbFileName , shell = True)
+    print('ktx applied')
+    
+if geoCompInput in yes:
+    subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
 
 # -------------> To here
 
-if textureLimit in yes:
-    txtLimitInfo = '_TextureLimit' + '_w' + textureLimitWidth + '_h' + textureLimitHeight
+if textureLimitInput in yes:
+    txtLimitInfo = '_textureLimitInput' + '_w' + textureLimitInputWidth + '_h' + textureLimitInputHeight
 else:
     txtLimitInfo = ''
-    
-firstName = txtLimitInfo + '_ktx_draco_1'
 
-compGlbFileName = Path(glbFile).stem + firstName + '.glb'
+if yes in (textureLimitInput , ktxCompInput , geoCompInput):
+    firstName = txtLimitInfo + '_Ktx(' + ktxCompType + ')' + geoCompState
 
-compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
+    compGlbFileName = Path(glbFile).stem + firstName + '.glb'
 
-shutil.copy(glbFileName , compGlbFile)
+    compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
+
+    shutil.copy(glbFileName , compGlbFile)
 
 os.chdir("..")
 
-# <------- Restore From Here
 shutil.rmtree(tempFolderPath)
-# -------------> To here
