@@ -4,11 +4,13 @@ import tempfile
 import shutil
 import msvcrt
 import shlex
+import sys
 import os
 
-glbFile = input('\nDrag the GLB file here and press enter: \n')
-
-glbFile = glbFile[1:-1]
+glbFilePath = ''
+while os.path.isfile(glbFilePath) == 0:
+    glbFilePath = input('\nDrag the GLB file here and press enter: \n')
+    glbFilePath = glbFilePath[1:-1]
 
 yes = ('Y' , 'y')
 no = ('N' , 'n')
@@ -16,7 +18,6 @@ textureLimitInput = ''
 textureLimitInputProp = ''
 textureLimitInputWidth = ''
 textureLimitInputHeight = ''
-
 while textureLimitInput not in (yes+no):
     textureLimitInput = input('\nDo you want to limit texture resolution? (Y/N): ')
     if textureLimitInput in yes:
@@ -35,6 +36,7 @@ while textureLimitInput not in (yes+no):
 uastc = '1'
 etc1s = '2'
 ktxCompType = ''
+ktxCompInfo = ''
 ktxCompInput = ''
 while ktxCompInput not in (yes+no):
     ktxCompInput = input('\nDo you want compressed textures (KTX) ? (Y/N): ')
@@ -43,40 +45,42 @@ while ktxCompInput not in (yes+no):
             ktxCompType = input('\nTexture compression type ? \n1 = Low\n2 = High\n')
         if ktxCompType == '1':
             ktxCompType = 'uastc'
+            ktxCompInfo = '_Ktx(uastc)'
         if ktxCompType == '2':
             ktxCompType = 'etc1s'
+            ktxCompInfo = '_Ktx(etc1s)'
 
 geoCompInput = ''
-geoCompState = ''
+geoCompInfo = ''
 while geoCompInput not in (yes+no): 
     geoCompInput = input('\nDo you want compressd geomety (Draco) ? (Y/N): ')
     if geoCompInput in yes:
-        geoCompState = '_Draco'
+        geoCompInfo = '_Draco'
 
-glbFileName = os.path.basename(glbFile)
+glbFileName = os.path.basename(glbFilePath)
 
-glbFolderPath = os.path.dirname(glbFile)
+glbFolderPath = os.path.dirname(glbFilePath)
 
 tempFolderPath = tempfile.mkdtemp(dir = glbFolderPath)
 
-tempGlbFile = os.path.join(tempFolderPath , glbFileName)
+shutil.copy(glbFilePath , tempFolderPath)
 
-shutil.copy(glbFile , tempFolderPath)
+GltfFilePath = tempFolderPath + '.gltf'
 
-tempGltfFile = os.path.splitext(tempGlbFile)[0] + '.gltf'
-
-tempGltfFileName = os.path.basename(tempGltfFile)
+GltfFileName = os.path.basename(GltfFilePath)
 
 os.chdir(tempFolderPath)
 
 # <------- Restore From Here
 
 if textureLimitInput in yes:
-        subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitInputWidth + ' --height ' + textureLimitInputHeight , shell = True)
-
+    subprocess.run('gltf-transform resize ' + glbFileName + ' ' + glbFileName + ' --width ' + textureLimitInputWidth + ' --height ' + textureLimitInputHeight , shell = True)
+    txtLimitInfo = '_MaxRes' + textureLimitInputWidth + 'x' + textureLimitInputHeight
+else:
+    txtLimitInfo = ''
 
 if ktxCompInput in yes:
-    subprocess.run('gltf-transform copy ' + glbFileName + ' ' + tempGltfFileName , shell = True)
+    subprocess.run('gltf-transform copy ' + glbFileName + ' ' + GltfFileName , shell = True)
 
     ext = ('.png', '.jpg')
 
@@ -85,23 +89,17 @@ if ktxCompInput in yes:
             print(file + ' ...' , end =" ")
             subprocess.run('magick convert -strip ' + file + ' ' + file , shell = True)
             print('Done')
-    subprocess.run('gltf-transform ' + ktxCompType + ' ' + tempGltfFileName + ' ' + glbFileName , shell = True)
-    print('ktx applied')
-    
+    subprocess.run('gltf-transform ' + ktxCompType + ' ' + GltfFileName + ' ' + glbFileName , shell = True)
+
 if geoCompInput in yes:
     subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
 
 # -------------> To here
 
-if textureLimitInput in yes:
-    txtLimitInfo = '_textureLimitInput' + '_w' + textureLimitInputWidth + '_h' + textureLimitInputHeight
-else:
-    txtLimitInfo = ''
+if textureLimitInput in yes or ktxCompInput in yes or geoCompInput in yes:
+    exportInfo = txtLimitInfo + ktxCompInfo + geoCompInfo
 
-if yes in (textureLimitInput , ktxCompInput , geoCompInput):
-    firstName = txtLimitInfo + '_Ktx(' + ktxCompType + ')' + geoCompState
-
-    compGlbFileName = Path(glbFile).stem + firstName + '.glb'
+    compGlbFileName = Path(glbFilePath).stem + exportInfo + '.glb'
 
     compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
 
