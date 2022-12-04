@@ -12,6 +12,7 @@ ktxCompNormal = 'etc1s'
 # KTX compression type for other maps(uastc/etc1s)
 ktxComp = 'etc1s'
 
+# Convert user inputs to KTX compression commands
 ktxCompNormalInfo = ''
 if 'uastc' in ktxCompNormal:
     ktxCompNormal = '--uastc 2 --zcmp 3'
@@ -20,6 +21,7 @@ if 'etc1s' in ktxCompNormal:
     ktxCompNormal = '--bcmp'
     ktxCompNormalInfo = 'nrmETC1S'
 
+# Input GLB path
 glbFilePath = ''
 while os.path.isfile(glbFilePath) == 0:
     glbFilePath = input('\nDrag the GLB file here and press enter: \n')
@@ -37,14 +39,13 @@ GltfFilePath = tempFolderPath + '.gltf'
 
 GltfFileName = os.path.basename(GltfFilePath)
 
+# Change working dir to temp folder
 os.chdir(tempFolderPath)
 
 subprocess.run('gltf-transform copy ' + glbFileName + ' ' + GltfFileName , shell = True)
 
+# Remove ICC Profiles from texture maps and extend to multiple of 2
 ext = ('.png', '.jpg')
-
-# input('ktx the clean png - Start ')
-
 for file in os.listdir(tempFolderPath):
     if file.endswith(ext):
         print(file + ' ...' , end =" ")
@@ -60,16 +61,13 @@ for file in os.listdir(tempFolderPath):
             subprocess.run('magick ' + file + ' -gravity northeast -splice ' + delta + 'x' + delta + ' ' + file , shell = True)
         print('Done')
 
-# input('ktx the clean png - Finished')
-
+# Pack glTF to Glb using KTX compression
 subprocess.run('gltf-transform ' + ktxComp + ' ' + GltfFileName + ' ' + glbFileName , shell = True)
 
-input('unpack the glb')
-
+# UnPack Glb to glTF in order to convert KTX normal maps
 subprocess.run('gltf-transform copy ' + glbFileName + ' ' + GltfFileName, shell = True)
 
-# input('ktx the normal')
-
+# Convert normal map KTX compression type
 keyword = 'normal'
 for file in os.listdir(tempFolderPath):
     if file.endswith(ext):
@@ -81,20 +79,21 @@ for file in os.listdir(tempFolderPath):
             filePathDoublequote = '"{}"'.format(filePath)
             subprocess.run('toktx --t2 ' + ktxCompNormal + ' ' + fileKtx2PathDoublequote + ' ' + filePathDoublequote , shell = True)
 
-# input('Pack back to glb')
-
+# Pack glTF to Glb
 subprocess.run('gltf-transform copy ' + GltfFileName + ' ' + glbFileName , shell = True)
 
-# input('use gltf-pipeline to pack the glb to glb')
-
+# Pack Glb to Glb with Draco compression
 subprocess.run('gltf-pipeline -i ' + glbFileName + ' -o ' + glbFileName + ' -d --draco.quantizePositionBits 0' , shell = True)
 
 compGlbFileName = Path(glbFilePath).stem + '_' + ktxComp + '_' + ktxCompNormalInfo + '.glb'
 
 compGlbFile = os.path.join(glbFolderPath , compGlbFileName)
 
+# Copy compressed Glb to source path
 shutil.copy(glbFileName , compGlbFile)
 
+# Change working path to source path
 os.chdir("..")
 
+# Delete Temp folder
 shutil.rmtree(tempFolderPath)
