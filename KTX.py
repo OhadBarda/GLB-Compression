@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # test3
+=======
+# test4
+>>>>>>> cc4aea43f3b6ac6d1e9a5b47b76ae4620f23d0a3
 from pathlib import Path
 import subprocess
 import tempfile
